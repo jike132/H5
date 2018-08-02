@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+    <script src="js/mui.min.js"></script>
+    <link href="css/mui.min.css" rel="stylesheet"/>
+    <link href="css/demo.css" rel="stylesheet" />
+    <script type="text/javascript" src="js/jquery.min.js" ></script>
+    <link rel="stylesheet" type="text/css" href="js/plugins/cropper/css/cropper.min.css"/>
+    <script type="text/javascript" src="js/plugins/jquery-3.1.1.slim.min.js" ></script>
+   <script type="text/javascript" src="js/plugins/cropper/js/cropper.min.js" ></script>
+   <script type="text/javascript" src="layer_mobile/layer.js" ></script>
+   <link rel="stylesheet" href="layer_mobile/need/layer.css" />
+     <title  class="mui-title"></title>
+     <style type="text/css">
+     	.mui-bar{
+	background-color: #1FBBA6;
+}
+.mui-title{
+	color: #FAFAFA;
+}
+.btn{
+	margin-top: 2rem;
+	width:20% ;
+	display: inline-block;
+}
+.top_bg{
+	width: 100%;
+}
+#confirm_id{
+	display: inline-block;
+}
+.cava{
+	width: 60%;
+	display: inline-block;
+	margin: auto;
+	text-align: center;
+}
+#imgBox{
+	display: inline-block;
+	text-align: center;
+	height: 250px!important;
+	width: 250px!important;
+	margin: 30px auto;
+	background: url('img/bg.jpg') no-repeat ;
+	background-size: 100%;
+}
+.mui-button-row{
+	width: 100%;
+}
+     .mui-input-group{
+     	margin-top:0;
+     }	
+     </style>
+    <script type="text/javascript" charset="utf-8">
+    var imgUrl;
+    var name;
+    var idCard;
+      	mui.init();
+      //	mui.plusReady(function );
+      mui.plusReady(function(){
+	plus.navigator.setStatusBarBackground( "#1FBBA6" );
+	   //初始化裁切组件
+	initImageCropper();
+	}
+);
+
+function initImageCropper(){
+	//初始化组件
+	$("#userImage_id").cropper({
+		aspectRatio: 3/3 , 
+		autoCropArea: 1,
+		dragMode: "move",//设置移动图片、重新绘制选图区域
+		cropBoxResizable: false,
+		//movable: true,//是否允许移动裁切框
+		zoomable:false,//是否允许放大图片
+		guides: true,//取消显示裁切线中间的虚线网格
+		minContainerWidth:250,
+		minContainerHeight:250,
+		minCanvasWidth: 250,
+		minCanvasHeight: 250,
+		crop: function(data){
+			//初始化
+			window._scaleX = data.scaleX;
+			window._scaleY = data.scaleY;
+		}
+	});
+}
+//确定裁切
+	function ensure(e){
+		var dataURL = $("#userImage_id").cropper("getCroppedCanvas" , {
+			width: 250 , height: 250
+		});
+		 imgUrl = dataURL.toDataURL("image/jpeg", 1);
+//		$("#userImage_id").attr("src" , imgUrl);
+		$("#userImage_id").cropper("replace" , imgUrl);
+		$("#userImage_id").cropper("clear");//裁切完成取消显示裁切框
+		$("#userImage_id").cropper("disable");
+		//确定裁切后销毁裁切组件，标记一下，下次继续裁切时需要初始化一下裁切组件
+		window.imageDisable = true;
+		//禁用几个功能按钮
+		//$("#confirm_id").prop("disabled" , true);
+		
+		//向后台提供数据
+		//uploadFile(imgUrl);
+	};
+
+   function clickCamera() {   
+        var cmr = plus.camera.getCamera();   //获取camera对象
+        var res = cmr.supportedImageResolutions[0];   //
+        var fmt = cmr.supportedImageFormats[0];   
+        cmr.captureImage(function(path) {   
+            //plus.io.resolveLocalFileSystemURL(path, function(entry) {   
+            	 plus.io.resolveLocalFileSystemURL(path, function(entry) { 
+              var newPath = entry.toLocalURL() + "?version=" + Math.random();
+				loadImage(newPath);
+          
+            }, function(e) { 
+                mui.toast("读取拍照文件错误：" + e.message); 
+            }); 
+            	
+                }  
+        , function(err) {   
+            layer.open({
+                          content: "拍照失败：" + err.message
+                          ,btn: '好的'
+                        });   
+        }, {   
+            index: 1   
+        });   
+     
+    };   
+    function test(){
+    	var check=true;
+    	mui(".mui-input-group input").each(function() {
+//若当前input为空，则alert提醒 
+if(!this.value || this.value.trim() == "") {
+    var label = this.previousElementSibling;
+    mui.alert(label.innerText + "不允许为空");
+    check = false;
+    return false;
+}
+}); //校验通过，继续执行业务逻辑 
+if(check){
+	layer.open({type: 2,content: '比对中'});
+	if(imgUrl){
+		name=document.getElementById("name").value;
+			var data={
+                  idCard:idCard,
+                  image:imgUrl,
+                  name:name
+               };
+               var d=JSON.stringify(data);
+               console.log(d);
+			 mui.ajax({
+                type: "post",
+                url: "http://218.201.239.228:8090/ssdemo/test/testAPIService1",
+                async: true,
+                data:d ,
+                datType: "json",
+                contentType: "application/json",
+                crossDomain:true,       
+                timeout: 100000,
+                success: function(data) {
+                	layer.closeAll();
+                    var	data=JSON.parse(data);                
+              if(data.bean){
+                if(data.bean.compareResult==='1'||data.bean.compareResult===1){
+                	layer.open({
+                       content: "您好，您已通过认证比对"
+                       ,btn: '好的'
+  });
+  }else if(data.bean.compareResult==='0'||data.bean.compareResult===0){
+         layer.open({
+             content: "您好，您的照片与输入信息不符，认证失败"
+                 ,btn: '好的'
+                 });
+                    	
+                    }
+                   }else{
+              layer.open({
+                          content: data
+                          ,btn: '好的'
+                        });
+                    	
+                    }
+
+                },
+                error: function(xhr, type, errorThrown) {
+                  console.log(xhr);
+                  console.log(type);
+                  console.log(errorThrown);
+                }
+           });
+	}else{
+		 mui.alert('请先拍本人照片');
+	}
+
+	}	
+    }
+    function checkId(id){
+    var s=	document.getElementById(id).value;
+    var reg = /(^\d{15}$)|(^\d{18}$)|(^\d{17}(\d|X|x)$)/; 
+    if(reg.test(s)){
+    	idCard=s;
+    }else{
+    layer.open({
+    content: '身份证号错误'
+    ,skin: 'msg'
+    ,time: 2 //2秒后自动关闭
+  });
+    	document.getElementById(id).value="";
+    }
+    	
+    }
+    //确定选择图片
+function loadImage(path){
+	var img = document.getElementById("userImage_id");
+	img.src = path;
+	
+	if(window.imageDisable == true){
+		$("#userImage_id").cropper("enable");
+	}
+	$("#userImage_id").cropper("replace" , path);
+	//启用几个功能按钮
+	$("button.toolbutton").prop("disabled" , false);
+	document.getElementById("userImage_id").onclick = function(){
+		plus.runtime.openFile(path);
+	}
+}
+    </script>
+</head>
+<body>
+	<header class="mui-bar mui-bar-nav">
+    <h1 class="mui-title">操作主页面</h1>
+</header>
+<div class="mui-content">
+	<div class="top_bg">
+		<div class="btn">
+		<button  class="mui-button-row" onclick="clickCamera()">拍照</button>
+		<button  class="mui-button-row" id="confirm_id" onclick="ensure()">确定</button>
+		</div>
+		<div class="cava">
+	<div id="imgBox">
+		<img id="userImage_id" width="250" height="250" onclick="clickCamera()" />
+	</div>
+	</div>
+	
+	</div>
+	<div class="mui-input-group">
+		<form id="inForm">
+    <div class="mui-input-row">
+        <label>身份证号：</label>
+        <input type="tel" class="mui-input-clear" placeholder="请输入身份证号码" id="Id" onchange="checkId(this.id)">
+    </div>
+    <div class="mui-input-row">
+        <label>姓名：</label>
+        <input type="text" class="mui-input-clear " id="name" placeholder="请输入姓名">
+    </div>
+    </form>
+     <div class="mui-button-row">
+        <button type="button" class="mui-btn mui-btn-danger" onclick="test()" >提交信息</button>
+    </div>
+</div>
+		
+</div>
+</body>
+</html>
